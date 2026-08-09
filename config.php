@@ -48,10 +48,10 @@ $config = [
         'pass' => '',
     ],
 
-    // 관리자 페이지 비밀번호.
-    // 여기 적지 말고 config.local.php 에 넣으세요 (git 에 올라가지 않습니다).
-    // 비어 있으면 관리자 페이지가 아예 열리지 않습니다.
-    'admin_password' => '',
+    // 관리자 비밀번호는 여기 없습니다.
+    // DB(admin_auth 테이블)에 되돌릴 수 없는 해시로만 저장합니다.
+    // 처음 한 번은 이 PC 에서 http://localhost/comfy/admin.php 로 들어가 정하고,
+    // 나중에 바꿀 때는 관리자 페이지의 '비밀번호' 메뉴를 쓰세요.
 
     // ComfyUI 출력 폴더. 썸네일을 만들 때 원본을 여기서 읽습니다.
     'output_dir' => 'G:\comfy\output',

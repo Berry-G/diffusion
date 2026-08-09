@@ -19,7 +19,15 @@ function h($s): string
 }
 
 // ------------------------------------------------------------------ 로그인 처리
-$password = (string)($cfg['admin_password'] ?? '');
+//
+// 비밀번호는 DB 에 되돌릴 수 없는 해시로만 둡니다. 설정 파일에 평문으로 적으면
+// 백업이나 화면 공유로 새어 나갈 수 있어서입니다.
+// 아직 정한 적이 없으면 이 PC 앞에서 한 번 정하게 합니다 — 원격에서 먼저
+// 들어와 비밀번호를 선점하는 것을 막기 위해서입니다.
+
+$dbUp       = db($cfg) !== null;
+$storedHash = $dbUp ? admin_password_hash($cfg) : null;
+$needsSetup = $dbUp && $storedHash === null;
 
 if (isset($_GET['logout'])) {
     session_destroy();
@@ -28,8 +36,43 @@ if (isset($_GET['logout'])) {
 }
 
 $loginError = null;
-if ($password !== '' && ($_POST['password'] ?? null) !== null) {
-    if (hash_equals($password, (string)$_POST['password'])) {
+$setupError = null;
+$notice     = null;
+
+/** 새 비밀번호가 쓸 만한지 봅니다. 문제가 있으면 이유를 돌려줍니다. */
+function password_problem(?string $new, ?string $confirm): ?string
+{
+    if ($new === null || $new === '') {
+        return '비밀번호를 입력하세요.';
+    }
+    if (mb_strlen($new) < 8) {
+        return '8자 이상으로 정해 주세요.';
+    }
+    if ($new !== $confirm) {
+        return '두 번 입력한 값이 다릅니다.';
+    }
+    return null;
+}
+
+// 처음 정하기
+if ($needsSetup && isset($_POST['new_password'])) {
+    if (!is_local_request()) {
+        $setupError = '비밀번호는 이 PC 앞에서 먼저 정해야 합니다.';
+    } elseif ($problem = password_problem($_POST['new_password'], $_POST['confirm'] ?? null)) {
+        $setupError = $problem;
+    } elseif (set_admin_password($cfg, $_POST['new_password'])) {
+        session_regenerate_id(true);
+        $_SESSION['admin'] = true;
+        header('Location: admin.php');
+        exit;
+    } else {
+        $setupError = '저장하지 못했습니다. MariaDB 연결을 확인하세요.';
+    }
+}
+
+// 로그인
+if (!$needsSetup && isset($_POST['password'])) {
+    if (verify_admin_password($cfg, (string)$_POST['password'])) {
         session_regenerate_id(true);
         $_SESSION['admin'] = true;
         header('Location: admin.php');
@@ -40,6 +83,21 @@ if ($password !== '' && ($_POST['password'] ?? null) !== null) {
 }
 
 $authed = !empty($_SESSION['admin']);
+
+// 로그인한 상태에서 바꾸기
+if ($authed && isset($_POST['change_password'])) {
+    if (!verify_admin_password($cfg, (string)($_POST['current_password'] ?? ''))) {
+        $setupError = '지금 쓰는 비밀번호가 다릅니다.';
+    } elseif ($problem = password_problem($_POST['change_password'], $_POST['confirm'] ?? null)) {
+        $setupError = $problem;
+    } elseif (set_admin_password($cfg, $_POST['change_password'])) {
+        $notice = '비밀번호를 바꿨습니다.';
+    } else {
+        $setupError = '저장하지 못했습니다.';
+    }
+}
+
+$showSettings = $authed && isset($_GET['settings']);
 
 // ------------------------------------------------------------------ 목록 조회
 $rows = [];
@@ -53,7 +111,7 @@ $tag    = trim((string)($_GET['tag'] ?? ''));
 $status = (string)($_GET['status'] ?? '');
 $page   = max(1, (int)($_GET['page'] ?? 1));
 
-if ($authed) {
+if ($authed && !$showSettings) {
     $pdo = db($cfg);
     if (!$pdo) {
         $dbError = 'MariaDB 에 연결하지 못했습니다. Laragon 에서 MySQL 이 켜져 있는지 확인하세요.';
@@ -166,15 +224,43 @@ $pages = (int)ceil($total / PER_PAGE);
 </head>
 <body>
 
-<?php if ($password === ''): ?>
+<?php if (!$dbUp): ?>
   <main class="app">
     <h1>관리자 페이지</h1>
     <p class="error" style="display:block">
-      비밀번호가 설정되지 않아 열 수 없습니다.<br><br>
-      <code>config.local.php.example</code> 을 <code>config.local.php</code> 로 복사하고
-      <code>admin_password</code> 에 쓸 비밀번호를 적으세요.
-      그 파일은 저장소에 올라가지 않습니다.
+      MariaDB 에 연결하지 못했습니다.<br>
+      Laragon 에서 MySQL 이 켜져 있는지 확인하세요.
     </p>
+  </main>
+
+<?php elseif ($needsSetup): ?>
+  <main class="app">
+    <h1>관리자 비밀번호 정하기</h1>
+    <?php if (is_local_request()): ?>
+      <p class="hint">
+        처음 한 번만 정하면 됩니다. 되돌릴 수 없는 형태로만 저장되므로
+        설정 파일이나 저장소에 비밀번호가 남지 않습니다.
+      </p>
+      <form method="post" class="login">
+        <label class="field">
+          <span class="label">새 비밀번호 <em>(8자 이상)</em></span>
+          <input type="password" name="new_password" autocomplete="new-password" autofocus>
+        </label>
+        <label class="field">
+          <span class="label">한 번 더</span>
+          <input type="password" name="confirm" autocomplete="new-password">
+        </label>
+        <?php if ($setupError): ?><p class="error" style="display:block"><?= h($setupError) ?></p><?php endif; ?>
+        <button type="submit" class="go">정하기</button>
+      </form>
+    <?php else: ?>
+      <p class="error" style="display:block">
+        아직 비밀번호가 정해지지 않았습니다.<br><br>
+        이 PC 앞에서 <code>http://localhost/comfy/admin.php</code> 로 접속해
+        먼저 정해 주세요. 원격에서 아무나 먼저 비밀번호를 차지하지 못하게
+        일부러 막아 둔 것입니다.
+      </p>
+    <?php endif; ?>
   </main>
 
 <?php elseif (!$authed): ?>
@@ -190,11 +276,39 @@ $pages = (int)ceil($total / PER_PAGE);
     </form>
   </main>
 
+<?php elseif ($showSettings): ?>
+  <main class="app">
+    <header class="admin-head">
+      <h1>비밀번호 바꾸기</h1>
+      <a class="logout" href="admin.php">← 목록</a>
+    </header>
+    <form method="post" class="login">
+      <label class="field">
+        <span class="label">지금 쓰는 비밀번호</span>
+        <input type="password" name="current_password" autocomplete="current-password">
+      </label>
+      <label class="field">
+        <span class="label">새 비밀번호 <em>(8자 이상)</em></span>
+        <input type="password" name="change_password" autocomplete="new-password">
+      </label>
+      <label class="field">
+        <span class="label">한 번 더</span>
+        <input type="password" name="confirm" autocomplete="new-password">
+      </label>
+      <?php if ($setupError): ?><p class="error" style="display:block"><?= h($setupError) ?></p><?php endif; ?>
+      <?php if ($notice): ?><p class="notice"><?= h($notice) ?></p><?php endif; ?>
+      <button type="submit" class="go">바꾸기</button>
+    </form>
+  </main>
+
 <?php else: ?>
   <main class="app admin">
     <header class="admin-head">
       <h1>생성 기록 <span class="count"><?= number_format($total) ?></span></h1>
-      <a class="logout" href="admin.php?logout=1">나가기</a>
+      <span class="head-actions">
+        <a class="logout" href="admin.php?settings=1">비밀번호</a>
+        <a class="logout" href="admin.php?logout=1">나가기</a>
+      </span>
     </header>
 
     <?php if ($dbError): ?>

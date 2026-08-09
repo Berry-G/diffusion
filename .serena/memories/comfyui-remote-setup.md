@@ -57,7 +57,11 @@
 - **PDO 네이티브 프리페어에서는 같은 이름의 자리표시자를 두 번 못 쓴다.**
   `LIKE :q OR LIKE :q` 는 `SQLSTATE[HY093] Invalid parameter number` 로 죽는다.
   `EMULATE_PREPARES => false` 를 쓰는 한 이름을 나눠야 한다.
-- 관리자 비밀번호는 `config.local.php` (gitignore). 비어 있으면 관리자 페이지가 열리지 않는다.
+- **관리자 비밀번호는 설정 파일에 두지 않는다.** DB `admin_auth` 에 `password_hash()` 해시로만 저장한다.
+  평문이 디스크에 남으면 백업·화면 공유로 샌다는 사용자 지적에 따라 바꾼 것이므로,
+  편하다는 이유로 설정 파일에 되돌리지 말 것.
+  최초 설정은 `localhost` 에서만 가능하다 — 원격에서 먼저 들어와 비밀번호를 선점하는 것을 막는다.
+  잊었으면 `DELETE FROM admin_auth;` 후 이 PC 에서 다시 정한다.
 
 ## 검증 방법
 
