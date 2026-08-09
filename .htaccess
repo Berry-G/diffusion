@@ -1,0 +1,20 @@
+# 웹으로 열릴 이유가 없는 파일은 막는다.
+#
+# workflow_api.json 에는 쓰는 모델과 LoRA 경로가 들어 있고,
+# start-comfy.bat 에는 이 PC 의 폴더 구조가 들어 있다.
+# 브라우저가 필요로 하는 것은 index.php / api.php / assets 뿐이다.
+
+<FilesMatch "\.(json|bat|md|py|yaml|yml|log)$">
+    Require all denied
+</FilesMatch>
+
+# 변환 스크립트가 들어 있는 폴더 전체
+RedirectMatch 404 ^/(.*/)?tools(/|$)
+
+# 편집기 임시 파일과 백업
+<FilesMatch "(~|\.bak|\.orig|\.swp)$">
+    Require all denied
+</FilesMatch>
+
+# 디렉터리 목록을 보여주지 않는다
+Options -Indexes
