@@ -8,6 +8,14 @@
  */
 
 $cfg = require __DIR__ . '/config.php';
+require_once __DIR__ . '/lib/db.php';
+require_once __DIR__ . '/lib/thumb.php';
+
+/** 요청한 기기의 주소. Tailscale 을 쓰면 100.x.x.x 가 찍힙니다. */
+function client_ip(): ?string
+{
+    return $_SERVER['REMOTE_ADDR'] ?? null;
+}
 
 /** ComfyUI 로 요청을 보내고 [본문, HTTP 상태] 를 돌려준다. */
 function comfy_request(array $cfg, string $path, string $method = 'GET', $body = null): array
@@ -105,6 +113,11 @@ if ($action === 'view') {
         fail(400, '잘못된 type 입니다.');
     }
 
+    // 목록에 쓰는 작은 그림. 원본이 1.5MB 라 그리드에 그대로 쓸 수 없다.
+    if (isset($_GET['thumb'])) {
+        serve_thumb($cfg, $params);
+    }
+
     [$bytes, $code, $err] = comfy_request($cfg, '/view?' . http_build_query($params));
     if ($bytes === null || $code >= 400) {
         fail(502, '이미지를 가져오지 못했습니다.', $err);
@@ -117,6 +130,7 @@ if ($action === 'view') {
     header('Cache-Control: private, max-age=3600');
     if (isset($_GET['download'])) {
         header('Content-Disposition: attachment; filename="' . download_name($params) . '"');
+        record_download($cfg, $params['filename']);
     }
     echo $bytes;
     exit;
@@ -202,6 +216,9 @@ if ($action === 'generate') {
         fail(400, $msg, $detail ?: ($res['error']['details'] ?? null));
     }
 
+    // 무엇을 넣어 만들었는지 남긴다. DB 가 꺼져 있어도 생성은 계속된다.
+    record_generation($cfg, $res['prompt_id'], $positive, $negative, $wf, client_ip());
+
     ok([
         'prompt_id' => $res['prompt_id'],
         'queued'    => $waiting,
@@ -228,6 +245,7 @@ if ($action === 'status') {
                     $why = $m[1]['exception_message'] ?? $why;
                 }
             }
+            record_error($cfg, $id, $why);
             ok(['state' => 'error', 'message' => $why]);
         }
 
@@ -249,6 +267,7 @@ if ($action === 'status') {
         }
 
         if ($images) {
+            record_result($cfg, $id, $images[0]);
             ok(['state' => 'done', 'images' => $images]);
         }
         if ($status['completed'] ?? false) {

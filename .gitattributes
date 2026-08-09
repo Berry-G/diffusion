@@ -1,0 +1,12 @@
+# cmd 는 배치 파일에 CRLF 를 요구한다. LF 만 있으면 줄이 중간에서 잘리고
+# ^ 로 이어 붙인 줄까지 깨져서 "'...'은(는) 내부 또는 외부 명령이 아닙니다" 가 쏟아진다.
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
+
+# 웹에서 쓰는 것들은 LF 로 통일
+*.php  text eol=lf
+*.js   text eol=lf
+*.css  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.py   text eol=lf

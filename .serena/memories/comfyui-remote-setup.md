@@ -44,6 +44,21 @@
   `mode` 와 `wildcard_text` 는 프론트엔드용. 그래서 API 로 보낼 땐 `populated_text` 에 넣고
   `mode` 를 `fixed` 로 둔다.
 
+## 생성 기록 DB (MariaDB `diffusion`)
+
+- **PNG 안에 워크플로우가 통째로 들어 있다.** ComfyUI SaveImage 가 `prompt`(API 포맷) 와
+  `workflow`(화면용) 를 tEXt 청크로 심는다. 그래서 웹 폼을 만들기 전에 만든 그림도
+  프롬프트·파라미터를 되살릴 수 있다 — `tools/backfill.php` 가 이걸 읽는다.
+- **연결되지 않은 노드는 기록에서 빼야 한다.** 워크플로우에는 아무 데도 안 붙은
+  `LoraLoader` 3개가 남아 있는데, 실행되지 않으므로 적용된 LoRA 로 세면 거짓 정보가 된다.
+  `extract_params` 가 참조 여부를 확인해 걸러낸다.
+- **모델 이름이 한 곳에만 있지 않다.** SDXL 계열은 `CheckpointLoaderSimple`,
+  Qwen 계열(anima)은 `UNETLoader` 를 쓴다. 둘 다 봐야 한다.
+- **PDO 네이티브 프리페어에서는 같은 이름의 자리표시자를 두 번 못 쓴다.**
+  `LIKE :q OR LIKE :q` 는 `SQLSTATE[HY093] Invalid parameter number` 로 죽는다.
+  `EMULATE_PREPARES => false` 를 쓰는 한 이름을 나눠야 한다.
+- 관리자 비밀번호는 `config.local.php` (gitignore). 비어 있으면 관리자 페이지가 열리지 않는다.
+
 ## 검증 방법
 
 `/prompt` 에 POST 하기 전에 워크플로우를 검사할 방법이 없다. 실제로 한 장 돌려 보는 게 유일한 검증이다.
@@ -71,6 +86,11 @@
   기본 정책이 세 프로필 모두 BlockInbound 라서 이 방식이 성립한다.
 - **이 PC 는 공인 IP 가 랜카드에 직접 붙어 있다** (`ipconfig` 로 확인). 공유기 뒤가 아니다.
   방화벽 제한을 풀면 인터넷에서 `www` 전체에 바로 닿는다.
+- **`.bat` 은 CP949(ANSI)로 저장해야 한다.** cmd 는 배치 파일을 시스템 코드페이지로 읽으므로
+  UTF-8 로 저장하면 한글 주석까지 깨져 명령으로 잘못 해석되고
+  `'...'은(는) 내부 또는 외부 명령이 아닙니다` 가 쏟아진다.
+  첫 줄에 `chcp 65001` 을 넣어도 소용없다 — 파일은 이미 읽히기 시작한 뒤다.
+  Write 도구는 UTF-8 로 쓰므로 만든 뒤 `[Text.Encoding]::GetEncoding(949)` 로 다시 저장할 것.
 - **Windows PowerShell 5.1 은 BOM 없는 UTF-8 을 ANSI 로 읽는다.** 한글이 든 `.ps1` 은
   반드시 UTF-8 BOM 으로 저장할 것. Write 도구는 BOM 을 안 붙이므로 뒤에 따로 붙여야 한다.
 - 원격 접근은 **Tailscale**. 공인 IP 노출과 포트포워딩을 피하려는 것이 이유이므로,

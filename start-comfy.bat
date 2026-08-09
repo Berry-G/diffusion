@@ -1,13 +1,14 @@
 @echo off
-chcp 65001 >nul
-title ComfyUI (ì›ê²© ìƒì„±ìš© ë°±ì—”ë“œ)
+REM ÀÌ ÆÄÀÏÀº CP949(ANSI)·Î ÀúÀåÇØ¾ß ÇÕ´Ï´Ù.
+REM UTF-8 ·Î ÀúÀåÇÏ¸é cmd °¡ ÇÑ±ÛÀ» ±ú¶ß·Á ¸í·ÉÀ¸·Î Àß¸ø ÇØ¼®ÇÕ´Ï´Ù.
+title ComfyUI (¿ø°Ý »ý¼º¿ë ¹é¿£µå)
 
-REM Comfy Desktop ì•±ì„ ì¼œì§€ ì•Šê³  ìƒì„± ì—”ì§„ë§Œ ë„ì›ë‹ˆë‹¤.
-REM Desktop ì•±ì„ ì¼œë„ ê°™ì€ 8000 í¬íŠ¸ë¥¼ ì“°ë¯€ë¡œ ë‘˜ ì¤‘ í•˜ë‚˜ë§Œ ì‹¤í–‰í•˜ì„¸ìš”.
+REM Comfy Desktop ¾ÛÀ» ÄÑÁö ¾Ê°í »ý¼º ¿£Áø¸¸ ¶ç¿ó´Ï´Ù.
+REM Desktop ¾ÛÀ» ÄÑµµ °°Àº 8000 Æ÷Æ®¸¦ ¾²¹Ç·Î µÑ Áß ÇÏ³ª¸¸ ½ÇÇàÇÏ¼¼¿ä.
 REM
-REM --listen 127.0.0.1 ì€ ì¼ë¶€ëŸ¬ ë¶™ì—¬ ë‘” ê²ƒìž…ë‹ˆë‹¤.
-REM ì´ë ‡ê²Œ í•´ì•¼ ì›ê²©ì—ì„œ ComfyUI í™”ë©´ì— ì§ì ‘ ë¶™ì–´ ì›Œí¬í”Œë¡œìš°ë¥¼ ì—´ê±°ë‚˜
-REM ê³ ì¹  ìˆ˜ ì—†ê³ , ì›¹ í¼(api.php)ì„ í†µí•´ì„œë§Œ ìƒì„±í•  ìˆ˜ ìžˆìŠµë‹ˆë‹¤.
+REM --listen 127.0.0.1 Àº ÀÏºÎ·¯ ºÙ¿© µÐ °ÍÀÔ´Ï´Ù.
+REM ÀÌ·¸°Ô ÇØ¾ß ¿ø°Ý¿¡¼­ ComfyUI È­¸é¿¡ Á÷Á¢ ºÙ¾î ¿öÅ©ÇÃ·Î¿ì¸¦ ¿­°Å³ª
+REM °íÄ¥ ¼ö ¾ø°í, À¥ Æû(api.php)À» ÅëÇØ¼­¸¸ »ý¼ºÇÒ ¼ö ÀÖ½À´Ï´Ù.
 
 set "PY=G:\comfy\.venv\Scripts\python.exe"
 set "MAIN=G:\Comfy-Desktop\ComfyUI-Installs\ComfyUI\ComfyUI\main.py"
@@ -21,5 +22,5 @@ set "MODELS=%APPDATA%\Comfy Desktop\shared_model_paths.yaml"
   --enable-manager
 
 echo.
-echo ComfyUI ê°€ ì¢…ë£Œë˜ì—ˆìŠµë‹ˆë‹¤.
+echo ComfyUI °¡ Á¾·áµÇ¾ú½À´Ï´Ù.
 pause

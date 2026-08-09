@@ -6,7 +6,7 @@
  * 워크플로우를 수정한 뒤 workflow_api.json 을 다시 내보냈다면
  * 아래 node 매핑도 함께 확인해야 합니다.
  */
-return [
+$config = [
     // ComfyUI 서버 주소. 127.0.0.1 로 묶어 두어 외부에서는 직접 접근할 수 없습니다.
     'comfy_url' => 'http://127.0.0.1:8000',
 
@@ -39,4 +39,32 @@ return [
     // 1 = 무엇이든 그리는 중이면 거절. 이 PC 앞에서 직접 작업하는 동안
     // 원격 요청이 GPU 를 가로채지 않도록 하는 것이 목적이므로 1 을 유지하세요.
     'max_queue' => 1,
+
+    // 생성 기록을 남길 MariaDB.
+    // DB 가 꺼져 있어도 이미지 생성 자체는 계속됩니다 — 기록만 빠집니다.
+    'db' => [
+        'dsn'  => 'mysql:host=127.0.0.1;port=3306;dbname=diffusion;charset=utf8mb4',
+        'user' => 'root',
+        'pass' => '',
+    ],
+
+    // 관리자 페이지 비밀번호.
+    // 여기 적지 말고 config.local.php 에 넣으세요 (git 에 올라가지 않습니다).
+    // 비어 있으면 관리자 페이지가 아예 열리지 않습니다.
+    'admin_password' => '',
+
+    // ComfyUI 출력 폴더. 썸네일을 만들 때 원본을 여기서 읽습니다.
+    'output_dir' => 'G:\comfy\output',
+
+    // 썸네일 캐시 위치와 긴 변의 픽셀 수
+    'thumb_dir'  => __DIR__ . '/data/thumbs',
+    'thumb_size' => 360,
 ];
+
+// 이 기기에만 두는 설정(비밀번호, DB 계정 등)이 있으면 덮어씁니다.
+$local = __DIR__ . '/config.local.php';
+if (is_file($local)) {
+    $config = array_replace_recursive($config, require $local);
+}
+
+return $config;
