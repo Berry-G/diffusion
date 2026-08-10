@@ -7,6 +7,7 @@
  */
 
 require_once __DIR__ . '/prompt.php';
+require_once __DIR__ . '/tailscale.php';
 
 function db(array $cfg): ?PDO
 {
@@ -110,17 +111,23 @@ function record_generation(array $cfg, string $promptId, string $positive, strin
             $mainSeed = $p['seeds'][$mainNode]['seed'];
         }
 
+        // 누가 만들었는지. Tailscale 이 기기 이름과 계정을 알려줍니다.
+        $who = tailscale_whois($cfg, $clientIp);
+
         $st = $pdo->prepare(
             'INSERT INTO generations
                 (prompt_id, positive, negative, seed, checkpoint, sampler, scheduler,
                  steps, cfg, width, height, hires_steps, hires_denoise, loras, seeds,
-                 status, client_ip, source, workflow_json)
+                 status, client_ip, ts_device, ts_user, ts_display, source, workflow_json)
              VALUES
                 (:prompt_id, :positive, :negative, :seed, :checkpoint, :sampler, :scheduler,
                  :steps, :cfg, :width, :height, :hires_steps, :hires_denoise, :loras, :seeds,
-                 "queued", :client_ip, "web", :workflow)'
+                 "queued", :client_ip, :ts_device, :ts_user, :ts_display, "web", :workflow)'
         );
         $st->execute([
+            'ts_device'     => $who['device'],
+            'ts_user'       => $who['user'],
+            'ts_display'    => $who['display'],
             'prompt_id'     => $promptId,
             'positive'      => $positive,
             'negative'      => $negative,
@@ -217,6 +224,49 @@ function record_error(array $cfg, string $promptId, string $message): void
         )->execute([mb_substr($message, 0, 2000), $promptId]);
     } catch (Throwable $e) {
         error_log('[diffusion] 오류 기록 실패: ' . $e->getMessage());
+    }
+}
+
+/**
+ * 접속한 사람이 만든 최근 기록.
+ *
+ * Tailscale 계정을 알 수 있으면 그것으로 묶습니다. 그래야 PC 에서 만든 것을
+ * 폰에서도 이어 볼 수 있습니다. 계정을 모르면(로컬 접속 등) 주소로 묶습니다.
+ */
+function recent_generations(array $cfg, ?string $ip, int $limit = 20): array
+{
+    $pdo = db($cfg);
+    if (!$pdo || $ip === null) {
+        return [];
+    }
+
+    $who = tailscale_whois($cfg, $ip);
+    $limit = max(1, min(100, $limit));
+
+    if (!empty($who['user'])) {
+        $sql  = "ts_user = ?";
+        $args = [$who['user']];
+    } else {
+        // 같은 PC 에서 localhost 로 들어오면 ::1 과 127.0.0.1 이 섞인다.
+        $ips  = in_array($ip, ['::1', '127.0.0.1'], true) ? ['::1', '127.0.0.1'] : [$ip];
+        $sql  = 'client_ip IN (' . implode(',', array_fill(0, count($ips), '?')) . ')';
+        $args = $ips;
+    }
+
+    try {
+        $st = $pdo->prepare(
+            "SELECT prompt_id, positive, negative, status, filename, subfolder, file_type,
+                    ts_device, created_at, downloaded_at
+               FROM generations
+              WHERE $sql AND source = 'web'
+              ORDER BY created_at DESC, id DESC
+              LIMIT $limit"
+        );
+        $st->execute($args);
+        return $st->fetchAll();
+    } catch (Throwable $e) {
+        error_log('[diffusion] 최근 기록 조회 실패: ' . $e->getMessage());
+        return [];
     }
 }
 

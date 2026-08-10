@@ -53,6 +53,10 @@ $config = [
     // 처음 한 번은 이 PC 에서 http://localhost/comfy/admin.php 로 들어가 정하고,
     // 나중에 바꿀 때는 관리자 페이지의 '비밀번호' 메뉴를 쓰세요.
 
+    // 접속한 사람이 누구인지 물어볼 때 씁니다.
+    // IP 만으로는 알 수 없는 기기 이름과 로그인 계정을 Tailscale 이 알려줍니다.
+    'tailscale_exe' => 'C:\Program Files\Tailscale\tailscale.exe',
+
     // ComfyUI 출력 폴더. 썸네일을 만들 때 원본을 여기서 읽습니다.
     'output_dir' => 'G:\comfy\output',
 

@@ -136,6 +136,29 @@ if ($action === 'view') {
     exit;
 }
 
+// ------------------------------------------------------------- 내가 만든 최근 것
+if ($action === 'history') {
+    $rows = recent_generations($cfg, client_ip(), 20);
+
+    $out = [];
+    foreach ($rows as $r) {
+        $out[] = [
+            'prompt_id'  => $r['prompt_id'],
+            'positive'   => $r['positive'],
+            'negative'   => $r['negative'],
+            'status'     => $r['status'],
+            'at'         => $r['created_at'],
+            'downloaded' => $r['downloaded_at'] !== null,
+            'image'      => $r['filename'] === null ? null : [
+                'filename'  => $r['filename'],
+                'subfolder' => $r['subfolder'] ?? '',
+                'type'      => $r['file_type'] ?? 'output',
+            ],
+        ];
+    }
+    ok(['items' => $out]);
+}
+
 // ------------------------------------------------------------------- 생성 요청
 if ($action === 'generate') {
     $in = json_decode(file_get_contents('php://input'), true);

@@ -57,6 +57,11 @@
 - **PDO 네이티브 프리페어에서는 같은 이름의 자리표시자를 두 번 못 쓴다.**
   `LIKE :q OR LIKE :q` 는 `SQLSTATE[HY093] Invalid parameter number` 로 죽는다.
   `EMULATE_PREPARES => false` 를 쓰는 한 이름을 나눠야 한다.
+- **접속자 신원은 `tailscale whois <ip> --json` 으로 알아낸다.** 일반 권한으로 동작하며
+  `Node.ComputedName`(기기 이름)과 `UserProfile.LoginName`/`DisplayName`(계정)을 준다.
+  그래서 최근 목록을 IP 가 아니라 **계정**으로 묶는다 — 같은 사람이면 PC/폰이 한 목록이다.
+  localhost(`::1`, `127.0.0.1`)는 `peer not found` 가 나오므로 '이 PC' 로 대체한다.
+  결과는 `data/whois` 에 1시간 캐시 (요청마다 프로세스를 띄우지 않기 위해).
 - **관리자 비밀번호는 설정 파일에 두지 않는다.** DB `admin_auth` 에 `password_hash()` 해시로만 저장한다.
   평문이 디스크에 남으면 백업·화면 공유로 샌다는 사용자 지적에 따라 바꾼 것이므로,
   편하다는 이유로 설정 파일에 되돌리지 말 것.

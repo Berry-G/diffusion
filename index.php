@@ -11,7 +11,7 @@ $defaultNegative = 'bad quality, worst quality, worst detail, sketch, censor';
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>이미지 생성</title>
-<link rel="stylesheet" href="assets/style.css?v=1">
+<link rel="stylesheet" href="assets/style.css?v=3">
 </head>
 <body>
 
@@ -46,19 +46,14 @@ $defaultNegative = 'bad quality, worst quality, worst detail, sketch, censor';
     <a id="download" class="download" href="#" download>이미지 저장</a>
   </section>
 
-  <section id="history" class="history" hidden>
-    <h2>이번에 만든 것</h2>
-    <div class="thumbs" id="thumbs"></div>
-  </section>
-
   <section id="prompt-history" class="prompt-history" hidden>
-    <h2>최근 프롬프트</h2>
+    <h2>내가 만든 것</h2>
     <ul class="ph-list" id="ph-list"></ul>
-    <p class="ph-note">이 기기에만 저장됩니다. 눌러서 다시 불러올 수 있어요.</p>
+    <p class="ph-note">눌러서 그 프롬프트를 다시 불러올 수 있어요.</p>
   </section>
 </main>
 
 <script>window.EST_SECONDS = <?= (int)$cfg['est_seconds'] ?>;</script>
-<script src="assets/app.js?v=1"></script>
+<script src="assets/app.js?v=3"></script>
 </body>
 </html>

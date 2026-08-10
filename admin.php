@@ -148,7 +148,8 @@ if ($authed && !$showSettings) {
                         g.sampler, g.scheduler, g.steps, g.cfg, g.width, g.height,
                         g.hires_steps, g.hires_denoise, g.loras, g.seeds, g.status,
                         g.error_message, g.filename, g.subfolder, g.file_type,
-                        g.client_ip, g.source, g.created_at, g.completed_at, g.downloaded_at
+                        g.client_ip, g.ts_device, g.ts_user, g.ts_display,
+                        g.source, g.created_at, g.completed_at, g.downloaded_at
                    FROM generations g
                    $whereSql
                   ORDER BY g.created_at DESC, g.id DESC
@@ -365,7 +366,8 @@ $pages = (int)ceil($total / PER_PAGE);
                     '해상도'       => $row['width'] && $row['height'] ? $row['width'] . ' x ' . $row['height'] : null,
                     'Hires'        => $row['hires_steps'] ? $row['hires_steps'] . '스텝 / denoise ' . rtrim(rtrim((string)$row['hires_denoise'], '0'), '.') : null,
                     '시드'         => $row['seed'],
-                    '만든 곳'      => $row['client_ip'],
+                    '만든 기기'    => $row['ts_device'] ?: $row['client_ip'],
+                    '만든 사람'    => $row['ts_display'] ?: $row['ts_user'],
                     '만든 때'      => $row['created_at'],
                     '받은 때'      => $row['downloaded_at'],
                 ],

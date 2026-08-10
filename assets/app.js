@@ -12,14 +12,10 @@ const resultBox = document.getElementById('result');
 const resultImg = document.getElementById('result-img');
 const resultLink = document.getElementById('result-link');
 const downloadLink = document.getElementById('download');
-const historyBox = document.getElementById('history');
-const thumbs = document.getElementById('thumbs');
 const phBox = document.getElementById('prompt-history');
 const phList = document.getElementById('ph-list');
 
 const POLL_MS = 1500;
-const HISTORY_KEY = 'promptHistory';
-const HISTORY_MAX = 20;
 let polling = null;
 let currentPromptId = null;
 
@@ -29,148 +25,15 @@ if (saved && !positive.value) positive.value = saved;
 const savedNeg = localStorage.getItem('lastNegative');
 if (savedNeg) negative.value = savedNeg;
 
-// ---------------------------------------------------------------- 프롬프트 기록
-// 큐에 올라간 프롬프트만 이 기기의 localStorage 에 남긴다. 이미지 자체는 저장하지 않고,
-// 어떤 파일이 나왔는지와 그걸 받아 갔는지만 기록한다.
-
-function loadHistory() {
-  try {
-    const list = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    return Array.isArray(list) ? list : [];
-  } catch (err) {
-    return [];
-  }
-}
-
-function saveHistory(list) {
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-  } catch (err) {
-    // 저장 공간이 찼으면 오래된 절반을 버리고 한 번 더 시도한다.
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, Math.ceil(list.length / 2))));
-    } catch (err2) {
-      // 그래도 안 되면 기록은 포기한다. 생성 자체를 막을 이유는 없다.
-    }
-  }
-}
-
-function addHistory(pos, neg, promptId) {
-  // 같은 프롬프트를 또 돌렸다면 목록에 쌓지 않고 맨 위로 올린다.
-  const list = loadHistory().filter((it) => !(it.positive === pos && it.negative === neg));
-  list.unshift({
-    positive: pos,
-    negative: neg,
-    at: Date.now(),
-    promptId: promptId,
-    image: null,        // 완성되면 파일 정보만 채운다 (이미지 자체는 저장하지 않는다)
-    downloadedAt: null,
-  });
-  saveHistory(list.slice(0, HISTORY_MAX));
-  renderHistory();
-}
-
-/** 완성된 이미지의 파일 정보를 해당 기록에 붙인다. */
-function attachImageToHistory(promptId, img) {
-  const list = loadHistory();
-  const item = list.find((it) => it.promptId === promptId);
-  if (!item) return;
-  item.image = {
-    filename: img.filename,
-    subfolder: img.subfolder || '',
-    type: img.type || 'output',
-  };
-  saveHistory(list);
-  renderHistory();
-}
-
-/**
- * 받기를 눌렀다고 표시한다.
- * 브라우저는 저장이 실제로 끝났는지 알려주지 않으므로, 정확히는 '받기를 눌렀음' 기록이다.
- */
-function markDownloaded(match) {
-  const list = loadHistory();
-  const item = list.find(match);
-  if (!item || item.downloadedAt) return;
-  item.downloadedAt = Date.now();
-  saveHistory(list);
-  renderHistory();
-}
-
-function formatWhen(ts) {
-  const d = new Date(ts);
-  const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-  const sameDay = d.toDateString() === new Date().toDateString();
-  return sameDay ? time : `${d.getMonth() + 1}/${d.getDate()} ${time}`;
-}
-
-function renderHistory() {
-  const list = loadHistory();
-  phList.textContent = '';
-  phBox.hidden = list.length === 0;
-
-  list.forEach((item) => {
-    const li = document.createElement('li');
-
-    const pick = document.createElement('button');
-    pick.type = 'button';
-    pick.className = 'ph-item';
-
-    // 프롬프트는 textContent 로만 넣는다 — HTML 로 해석되지 않게.
-    const text = document.createElement('span');
-    text.className = 'ph-text';
-    text.textContent = item.positive;
-
-    const when = document.createElement('time');
-    when.className = 'ph-when';
-    when.textContent = formatWhen(item.at);
-    if (item.downloadedAt) {
-      const badge = document.createElement('span');
-      badge.className = 'ph-got';
-      badge.textContent = '받음';
-      when.append(' ', badge);
-    }
-
-    pick.append(text, when);
-    pick.addEventListener('click', () => {
-      positive.value = item.positive;
-      negative.value = item.negative || '';
-      positive.focus();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    li.appendChild(pick);
-
-    // 완성된 이미지가 있으면 여기서 바로 다시 받을 수 있다.
-    if (item.image) {
-      const dl = document.createElement('a');
-      dl.className = 'ph-dl' + (item.downloadedAt ? ' done' : '');
-      dl.href = viewUrl(item.image, true);
-      dl.setAttribute('download', '');
-      dl.title = item.downloadedAt ? '받음 — 다시 받기' : '이미지 받기';
-      dl.setAttribute('aria-label', dl.title);
-      dl.textContent = item.downloadedAt ? '✓' : '⤓';
-      dl.addEventListener('click', () => {
-        // 목록을 다시 그리기 전에 브라우저가 내려받기를 시작하도록 한 박자 늦춘다.
-        setTimeout(() => markDownloaded((it) => it.at === item.at), 0);
-      });
-      li.appendChild(dl);
-    }
-
-    phList.appendChild(li);
-  });
-}
-
-renderHistory();
-
-function viewUrl(img, download) {
+function viewUrl(img, opts) {
   const p = new URLSearchParams({
     action: 'view',
     filename: img.filename,
     subfolder: img.subfolder || '',
     type: img.type || 'output',
   });
-  if (download) p.set('download', '1');
+  if (opts && opts.download) p.set('download', '1');
+  if (opts && opts.thumb) p.set('thumb', '1');
   return 'api.php?' + p.toString();
 }
 
@@ -184,8 +47,97 @@ function setBusy(busy) {
   submitBtn.textContent = busy ? '생성 중…' : '생성하기';
 }
 
+// ------------------------------------------------------------------ 최근 목록
+//
+// 이 목록은 서버에서 가져옵니다. Tailscale 계정으로 묶여 있어서,
+// PC 에서 만든 것을 폰에서도 이어 볼 수 있고 브라우저 기록을 지워도 남습니다.
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  return node;
+}
+
+function formatWhen(text) {
+  const d = new Date(String(text).replace(' ', 'T'));
+  if (isNaN(d)) return text;
+  const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  const sameDay = d.toDateString() === new Date().toDateString();
+  return sameDay ? time : `${d.getMonth() + 1}/${d.getDate()} ${time}`;
+}
+
+function historyRow(item) {
+  const li = document.createElement('li');
+
+  const pick = el('button', 'ph-item');
+  pick.type = 'button';
+
+  if (item.image) {
+    const thumb = document.createElement('img');
+    thumb.className = 'ph-thumb';
+    thumb.loading = 'lazy';
+    thumb.src = viewUrl(item.image, { thumb: true });
+    thumb.alt = '';
+    pick.appendChild(thumb);
+  } else {
+    pick.appendChild(el('span', 'ph-thumb ph-thumb-empty',
+      item.status === 'error' ? '실패' : '…'));
+  }
+
+  const body = el('span', 'ph-body');
+  body.appendChild(el('span', 'ph-text', item.positive));
+
+  const when = el('time', 'ph-when', formatWhen(item.at));
+  if (item.downloaded) {
+    when.append(' ', el('span', 'ph-got', '받음'));
+  }
+  body.appendChild(when);
+  pick.appendChild(body);
+
+  pick.addEventListener('click', () => {
+    positive.value = item.positive;
+    negative.value = item.negative || '';
+    positive.focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  li.appendChild(pick);
+
+  if (item.image) {
+    const dl = document.createElement('a');
+    dl.className = 'ph-dl' + (item.downloaded ? ' done' : '');
+    dl.href = viewUrl(item.image, { download: true });
+    dl.setAttribute('download', '');
+    dl.title = item.downloaded ? '받음 — 다시 받기' : '이미지 받기';
+    dl.setAttribute('aria-label', dl.title);
+    dl.textContent = item.downloaded ? '✓' : '⤓';
+    // 받은 시각은 서버가 남기므로, 잠시 뒤 목록을 다시 가져와 표시를 맞춘다.
+    dl.addEventListener('click', () => setTimeout(refreshHistory, 800));
+    li.appendChild(dl);
+  }
+
+  return li;
+}
+
+async function refreshHistory() {
+  let items = [];
+  try {
+    const res = await fetch('api.php?action=history');
+    const data = await res.json();
+    items = data.items || [];
+  } catch (err) {
+    return;   // 목록을 못 가져와도 생성 자체는 쓸 수 있어야 한다
+  }
+
+  phList.textContent = '';
+  phBox.hidden = items.length === 0;
+  items.forEach((item) => phList.appendChild(historyRow(item)));
+}
+
+// ------------------------------------------------------------------ 진행 표시
+
 /**
- * 진행바.
  * ComfyUI 는 폴링으로 정확한 퍼센트를 주지 않으므로 평균 소요 시간으로 채우되,
  * 실제로 끝날 때까지 99% 를 넘기지 않는다 — 다 찼는데 안 끝나면 더 답답하니까.
  */
@@ -193,40 +145,19 @@ function startProgress(etaSeconds) {
   const started = Date.now();
   return setInterval(() => {
     const elapsed = (Date.now() - started) / 1000;
-    const pct = Math.min(99, (elapsed / etaSeconds) * 100);
-    barFill.style.width = pct.toFixed(1) + '%';
+    barFill.style.width = Math.min(99, (elapsed / etaSeconds) * 100).toFixed(1) + '%';
   }, 200);
 }
 
-function addThumb(img) {
-  const a = document.createElement('a');
-  a.href = viewUrl(img, false);
-  a.target = '_blank';
-  a.rel = 'noopener';
-  const el = document.createElement('img');
-  el.src = viewUrl(img, false);
-  el.alt = '';
-  a.appendChild(el);
-  thumbs.prepend(a);
-  historyBox.hidden = false;
-}
-
-function showResult(images, promptId) {
+function showResult(images) {
   const first = images[0];
-  resultImg.src = viewUrl(first, false);
-  resultLink.href = viewUrl(first, false);
-  downloadLink.href = viewUrl(first, true);
+  resultImg.src = viewUrl(first, {});
+  resultLink.href = viewUrl(first, {});
+  downloadLink.href = viewUrl(first, { download: true });
   resultBox.hidden = false;
-  images.forEach(addThumb);
-  attachImageToHistory(promptId, first);
 }
 
-// 결과를 받아 가면 그 기록에 표시해 둔다.
-downloadLink.addEventListener('click', () => {
-  if (currentPromptId) {
-    markDownloaded((it) => it.promptId === currentPromptId);
-  }
-});
+downloadLink.addEventListener('click', () => setTimeout(refreshHistory, 800));
 
 async function poll(promptId, progressTimer) {
   const res = await fetch('api.php?action=status&id=' + encodeURIComponent(promptId));
@@ -244,13 +175,15 @@ async function poll(promptId, progressTimer) {
     clearInterval(progressTimer);
     barFill.style.width = '100%';
     statusText.textContent = '완성';
-    showResult(data.images, promptId);
+    showResult(data.images);
+    refreshHistory();
     return true;
   }
   if (data.state === 'error') {
     clearInterval(progressTimer);
     statusBox.hidden = true;
     showError(data.message || '생성에 실패했습니다.');
+    refreshHistory();
     return true;
   }
   // unknown — 서버가 재시작됐거나 작업이 취소된 경우
@@ -278,8 +211,7 @@ function startPolling(promptId, eta) {
     try {
       finished = await poll(promptId, progressTimer);
     } catch (err) {
-      // 일시적인 네트워크 오류로 폴링을 멈추지는 않는다.
-      return;
+      return;   // 일시적인 네트워크 오류로 폴링을 멈추지는 않는다
     }
     if (finished) {
       clearInterval(polling);
@@ -288,17 +220,6 @@ function startPolling(promptId, eta) {
       setBusy(false);
     }
   }, POLL_MS);
-}
-
-// 아직 끝나지 않은 작업이 있으면 이어서 지켜본다.
-try {
-  const pending = JSON.parse(localStorage.getItem('pendingPrompt') || 'null');
-  if (pending && pending.id) {
-    statusText.textContent = '이전 작업을 확인하는 중…';
-    startPolling(pending.id, pending.eta || window.EST_SECONDS);
-  }
-} catch (err) {
-  localStorage.removeItem('pendingPrompt');
 }
 
 form.addEventListener('submit', async (e) => {
@@ -331,7 +252,20 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  addHistory(positive.value, negative.value, data.prompt_id);
   statusText.textContent = data.queued > 0 ? `대기열 ${data.queued}번째…` : '그리는 중…';
   startPolling(data.prompt_id, data.eta || window.EST_SECONDS);
+  refreshHistory();
 });
+
+// 아직 끝나지 않은 작업이 있으면 이어서 지켜본다.
+try {
+  const pending = JSON.parse(localStorage.getItem('pendingPrompt') || 'null');
+  if (pending && pending.id) {
+    statusText.textContent = '이전 작업을 확인하는 중…';
+    startPolling(pending.id, pending.eta || window.EST_SECONDS);
+  }
+} catch (err) {
+  localStorage.removeItem('pendingPrompt');
+}
+
+refreshHistory();

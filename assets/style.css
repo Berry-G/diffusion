@@ -148,24 +148,7 @@ textarea:focus {
 
 .download:active { background: var(--panel); }
 
-.history { margin-top: 32px; }
-
-.thumbs {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-  gap: 8px;
-}
-
-.thumbs img {
-  width: 100%;
-  aspect-ratio: 832 / 1216;
-  object-fit: cover;
-  border-radius: 8px;
-  background: var(--panel);
-  display: block;
-}
-
-/* 최근 프롬프트 */
+/* 내가 만든 것 */
 
 .prompt-history { margin-top: 32px; }
 
@@ -188,9 +171,9 @@ textarea:focus {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 11px 12px;
+  align-items: stretch;
+  gap: 10px;
+  padding: 8px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -202,6 +185,33 @@ textarea:focus {
 }
 
 .ph-item:active { border-color: var(--accent); }
+
+.ph-thumb {
+  flex: 0 0 auto;
+  width: 44px;
+  aspect-ratio: 832 / 1216;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #0f1115;
+  display: block;
+}
+
+.ph-thumb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ph-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
 
 .ph-text {
   display: -webkit-box;
