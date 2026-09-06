@@ -1,7 +1,7 @@
 @echo off
 REM 이 파일은 CP949(ANSI)로 저장해야 합니다.
 REM UTF-8 로 저장하면 cmd 가 한글을 깨뜨려 명령으로 잘못 해석합니다.
-title diffusion.example.com 인증서 발급 (win-acme)
+title 인증서 발급 (win-acme)
 
 REM Let's Encrypt 인증서를 DNS-01 방식으로 받습니다.
 REM
@@ -15,7 +15,7 @@ REM      폴더 경로를 아래 WACS 에 적습니다.
 REM   2. 이 파일을 더블클릭합니다.
 REM   3. 화면에 아래 같은 안내가 뜹니다.
 REM
-REM        Create a DNS TXT record for _acme-challenge.diffusion.example.com
+REM        Create a DNS TXT record for _acme-challenge.<도메인>
 REM        with the following value: gfj9Xq...(무작위 문자열)
 REM
 REM   4. hosting.kr DNS 관리에서 레코드를 추가합니다.
@@ -31,8 +31,12 @@ REM 자동 갱신도 가능하지만, 수동 검증에서는 자동 갱신이 되지 않습니다.
 
 set "WACS=C:\laragon\www\win-acme.v2.2.9.1701.x64.pluggable\wacs.exe"
 set "OUT=C:\laragon\etc\ssl\diffusion"
-set "DOMAIN=diffusion.example.com"
-set "EMAIL=you@example.com"
+REM 도메인과 메일 주소는 저장소에 두지 않습니다.
+REM tools\cert.local.bat 에 적어 두면 그걸 읽고, 없으면 물어봅니다.
+REM (cert.local.bat 도 CP949 로 저장해야 합니다)
+if exist "%~dp0cert.local.bat" call "%~dp0cert.local.bat"
+if not defined DOMAIN set /p "DOMAIN=인증서를 받을 도메인: "
+if not defined EMAIL set /p "EMAIL=Let's Encrypt 알림 받을 메일: "
 
 if not exist "%WACS%" (
     echo.

@@ -1,0 +1,3 @@
+REM tools\cert.local.bat 로 복사해서 쓰세요. CP949(ANSI) 로 저장할 것.
+set "DOMAIN=diffusion.example.com"
+set "EMAIL=you@example.com"
