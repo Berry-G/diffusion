@@ -145,7 +145,8 @@ powershell -ExecutionPolicy Bypass -File tools\restrict-firewall.ps1 -Revert
 ```
 
 제한을 걸면 LAN(192.168.x.x) 과 인터넷에서 **Laragon 의 모든 사이트**가 막힙니다.
-comfy 뿐 아니라 같은 Laragon 아래에 있는 다른 프로젝트까지 전부입니다. `localhost` 는 그대로 됩니다.
+comfy 뿐 아니라 같은 Laragon 아래에 있는 다른 프로젝트까지 전부입니다.
+`localhost` 는 그대로 됩니다.
 
 **Apache 를 다시 켤 때 Windows 방화벽 팝업이 뜨면 [취소] 를 누르세요.**
 [액세스 허용] 을 누르면 모든 주소를 허용하는 규칙이 다시 생겨 제한이 무의미해집니다.
