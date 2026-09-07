@@ -284,7 +284,7 @@ DB 에서 가져오므로 브라우저 기록을 지워도 남고, PC 에서 만
 
 ## 워크플로우를 고쳤다면
 
-ComfyUI 화면에서 `workflow.json` 을 수정한 뒤:
+ComfyUI 화면에서 워크플로우를 수정한 뒤:
 
 ```
 G:\comfy\.venv\Scripts\python.exe tools\convert_workflow.py

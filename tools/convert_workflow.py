@@ -14,7 +14,28 @@ import sys
 import urllib.request
 
 COMFY = os.environ.get("COMFY_URL", "http://127.0.0.1:8000")
-SRC = os.environ.get("WORKFLOW_SRC", r"G:\comfy\user\default\workflows\workflow.json")
+
+# 원본 워크플로우(UI 포맷)의 경로. 기기마다 다르고 파일명 자체가
+# 이 저장소에 있을 이유가 없어서 밖으로 뺐다. 우선순위는
+#   1) 환경변수 WORKFLOW_SRC
+#   2) tools/workflow_src.local.txt 의 첫 줄 (gitignore 됨)
+#   3) 아래 기본값
+_LOCAL_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "workflow_src.local.txt")
+
+
+def _default_src():
+    try:
+        with open(_LOCAL_SRC, encoding="utf-8") as fh:
+            line = fh.readline().strip()
+            if line:
+                return line
+    except OSError:
+        pass
+    return r"G:\comfy\user\default\workflows\workflow.json"
+
+
+SRC = os.environ.get("WORKFLOW_SRC") or _default_src()
 DST = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                    "workflow_api.json")
 
