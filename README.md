@@ -159,7 +159,8 @@ comfy 뿐 아니라 같은 Laragon 아래에 있는 다른 프로젝트까지 �
 | `assets/app.js` | 요청 보내고 1.5초마다 진행 확인 |
 | `api.php` | ComfyUI 프록시. 브라우저는 여기하고만 대화합니다 |
 | `config.php` | 노드 번호, 저장 경로, 큐 제한 |
-| `workflow_api.json` | 워크플로우를 API 포맷으로 바꿔 둔 것 |
+| `workflow_api.json` | 실제 워크플로우를 API 포맷으로 바꿔 둔 것. **저장소에 없습니다** (아래 참고) |
+| `workflow_api.example.json` | 위 파일의 구조만 남긴 예시. 모델·LoRA 이름은 자리표시자 |
 | `tools/convert_workflow.py` | 위 파일을 다시 만드는 변환기 |
 | `admin.php` | 관리자 페이지 — 만든 이미지와 파라미터 보기 |
 | `lib/db.php` | 생성 기록 저장 (MariaDB) |
@@ -171,6 +172,21 @@ comfy 뿐 아니라 같은 Laragon 아래에 있는 다른 프로젝트까지 �
 | `config.local.php` | 관리자 비밀번호 등 이 기기에만 두는 설정 (저장소에 안 올라감) |
 | `.htaccess` | 브라우저가 볼 이유 없는 파일 차단 |
 | `start-comfy.bat` | ComfyUI 를 생성 엔진으로만 띄우기 |
+
+### 워크플로우 파일이 저장소에 없는 이유
+
+`workflow_api.json` 에는 이 파이프라인이 쓰는 **체크포인트와 LoRA 파일명이 경로째** 들어갑니다.
+어떤 모델을 썼는지는 이 도구를 이해하는 데 필요한 정보가 아니고,
+모델마다 배포 조건(비상업 여부 등)이 달라 그대로 공개할 성질도 아닙니다.
+그래서 실제 파일은 이 기기에만 두고, 저장소에는 이름을 자리표시자로 바꾼
+`workflow_api.example.json` 만 올립니다.
+
+노드 구성·연결·고정한 파라미터는 예시 파일에 그대로 있으므로,
+**구조는 예시 파일만 봐도 전부 파악됩니다.** 바뀌는 것은 모델 이름뿐입니다.
+
+직접 돌려 보려면 `workflow_api.example.json` 을 `workflow_api.json` 으로 복사한 뒤
+`base/your-checkpoint.safetensors` 와 `lora/your-lora-N.safetensors` 를 자기 모델 경로로
+바꾸거나, ComfyUI 에서 워크플로우를 만들어 `tools/convert_workflow.py` 로 내보내면 됩니다.
 
 Apache 쪽 설정은 프로젝트 밖에 있습니다:
 
